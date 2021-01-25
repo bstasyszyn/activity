@@ -58,12 +58,19 @@ func NewActivityStreamsHandler(db Database, clock Clock) HandlerFunc {
 // errors occurred during retrieval.
 func NewActivityStreamsHandlerScheme(db Database, clock Clock, scheme string) HandlerFunc {
 	return func(c context.Context, w http.ResponseWriter, r *http.Request) (isASRequest bool, err error) {
+		fmt.Printf("NewActivityStreamsHandlerScheme.HandlerFunc - Request: %s (%s) from %s\n", r.URL, r.Method, r.RemoteAddr)
+
 		// Do nothing if it is not an ActivityPub GET request
 		if !isActivityPubGet(r) {
+			fmt.Printf("NewActivityStreamsHandlerScheme.HandlerFunc - Not an ActivityPub request!!!\n")
+
 			return
 		}
 		isASRequest = true
 		id := requestId(r, scheme)
+
+		fmt.Printf("NewActivityStreamsHandlerScheme.HandlerFunc - ID: %s from %s\n", id, r.RemoteAddr)
+
 		// Lock and obtain a copy of the requested ActivityStreams value
 		err = db.Lock(c, id)
 		if err != nil {
@@ -72,6 +79,7 @@ func NewActivityStreamsHandlerScheme(db Database, clock Clock, scheme string) Ha
 		// WARNING: Unlock not deferred
 		t, err := db.Get(c, id)
 		if err != nil {
+			fmt.Printf("NewActivityStreamsHandlerScheme.HandlerFunc - db.Get error: %s from %s\n", err, r.RemoteAddr)
 			db.Unlock(c, id)
 			return
 		}
@@ -80,8 +88,10 @@ func NewActivityStreamsHandlerScheme(db Database, clock Clock, scheme string) Ha
 		// branch above
 		if t == nil {
 			err = ErrNotFound
+			fmt.Printf("NewActivityStreamsHandlerScheme.HandlerFunc - Not found in DB: %s\n", id)
 			return
 		}
+
 		// Remove sensitive fields.
 		clearSensitiveFields(t)
 		// Serialize the fetched value.
@@ -93,6 +103,9 @@ func NewActivityStreamsHandlerScheme(db Database, clock Clock, scheme string) Ha
 		if err != nil {
 			return
 		}
+
+		fmt.Printf("NewActivityStreamsHandlerScheme.HandlerFunc - Responding to %s: %s\n", r.RemoteAddr, raw)
+
 		// Construct the response.
 		addResponseHeaders(w.Header(), clock, raw)
 		// Write the response.

@@ -2,6 +2,7 @@ package pub
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/go-fed/activity/streams"
 	"github.com/go-fed/activity/streams/vocab"
@@ -176,8 +177,28 @@ func (w SocialWrappedCallbacks) callbacks(fns []interface{}) []interface{} {
 	return fns
 }
 
+func Marshal(v vocab.Type) (b []byte, err error) {
+	var m map[string]interface{}
+	m, err = streams.Serialize(v)
+	if err != nil {
+		return
+	}
+	b, err = json.Marshal(m)
+	if err != nil {
+		return
+	}
+	return
+}
+
 // create implements the social Create activity side effects.
 func (w SocialWrappedCallbacks) create(c context.Context, a vocab.ActivityStreamsCreate) error {
+	bytes, err := Marshal(a)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("SocialWrappedCallbacks.create - Request: %s\n", bytes)
+
 	*w.undeliverable = false
 	op := a.GetActivityStreamsObject()
 	if op == nil || op.Len() == 0 {

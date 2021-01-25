@@ -1,0 +1,165 @@
+{
+  "@context": [
+    {
+      "as": "https://www.w3.org/ns/activitystreams",
+      "owl": "http://www.w3.org/2002/07/owl#",
+      "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+      "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+      "rfc": "https://tools.ietf.org/html/",
+      "schema": "http://schema.org/",
+      "xsd": "http://www.w3.org/2001/XMLSchema#"
+    },
+    {
+      "domain": "rdfs:domain",
+      "example": "schema:workExample",
+      "isDefinedBy": "rdfs:isDefinedBy",
+      "mainEntity": "schema:mainEntity",
+      "members": "owl:members",
+      "name": "schema:name",
+      "notes": "rdfs:comment",
+      "range": "rdfs:range",
+      "subClassOf": "rdfs:subClassOf",
+      "disjointWith": "owl:disjointWith",
+      "subPropertyOf": "rdfs:subPropertyOf",
+      "unionOf": "owl:unionOf",
+      "url": "schema:URL"
+    }
+  ],
+  "id": "https://trustbloc.com/orb/ns",
+  "type": "owl:Ontology",
+  "name": "Orb",
+  "members": [
+    {
+      "id": "https://trustbloc.com/orb/ns#Commit",
+      "type": "owl:Class",
+      "example": [
+        {
+          "type": "http://schema.org/CreativeWork",
+          "mainEntity": {
+            "@context": [
+              "https://www.w3.org/ns/activitystreams",
+              "https://trustbloc.com/orb/ns"
+            ],
+            "id": "https://org1.com/orb/outbox/reBGo",
+            "type": "Commit",
+            "actor": "https://org1.com/orb/public",
+            "to": [
+              "https://org1.com/orb/followers",
+              "https://org1.com/orb/myproject",
+              "https://org1.com/orb/myproject/team",
+              "https://org1.com/orb/myproject/followers"
+            ],
+            "object": {
+              "type": "OrderedCollection",
+              "totalItems": 1,
+              "items": [
+                {
+                  "id": "https://org1.com/orb/transactions/d96596230322716bd6f87a232a648ca9822a1c20",
+                  "type": "OrbTransaction",
+                  "attributedTo": "https://org1.com/orb/public",
+                  "cid": "d96596230322716bd6f87a232a648ca9822a1c20",
+                  "created": "2019-11-03T13:43:59Z"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "notes": "Indicates that a new Orb (Sidetree) transaction was added.",
+      "subClassOf": {
+        "type": "owl:Class",
+        "url": "https://www.w3.org/TR/activitystreams-vocabulary/#dfn-activity",
+        "name": "as:Activity"
+      },
+      "name": "Commit",
+      "url": "https://trustbloc.com/orb/vocabulary.html#act-commit"
+    },
+    {
+      "id": "https://trustbloc.com/orb/ns#Repository",
+      "type": "owl:Class",
+      "example": [
+        {
+          "type": "http://schema.org/CreativeWork",
+          "mainEntity": {
+            "@context": [
+              "https://www.w3.org/ns/activitystreams",
+              "https://w3id.org/security/v1",
+              "https://trustbloc.com/orb/ns"
+            ],
+            "id": "https://org1.com/orb/public",
+            "type": "Repository",
+            "publicKey": {
+              "id": "https://org1.com/orb/public#main-key",
+              "owner": "https://org1.com/orb/public",
+              "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhki....."
+            },
+            "inbox": "https://org1.com/orb/public/inbox",
+            "outbox": "https://org1.com/orb/public/outbox",
+            "followers": "https://org1.com/orb/public/followers",
+            "name": "Orb public repository",
+            "summary": "<p>Orb public repository</p>"
+          }
+        }
+      ],
+      "notes": "Represents an Orb transaction repository.",
+      "subClassOf": {
+        "type": "owl:Class",
+        "url": "https://www.w3.org/TR/activitystreams-vocabulary/#dfn-object",
+        "name": "as:Object"
+      },
+      "name": "Repository",
+      "url": "https://trustbloc.com/orb/vocabulary.html#type-repository"
+    },
+    {
+      "id": "https://trustbloc.com/orb/ns#Transaction",
+      "type": "owl:Class",
+      "example": [
+        {
+          "type": "http://schema.org/CreativeWork",
+          "mainEntity": {
+            "@context": [
+              "https://www.w3.org/ns/activitystreams",
+              "https://trustbloc.com/orb/ns"
+            ],
+            "id": "https://org1.com/orb/transactions/bafkreiatkubvbkdidscmqynkyls3iqawdqvthi7e6mbky2amuw3inxsi3y",
+            "type": "Transaction",
+            "attributedTo": "https://org1.com/orb/public",
+            "cid": "bafkreiatkubvbkdidscmqynkyls3iqawdqvthi7e6mbky2amuw3inxsi3y",
+            "created": "2019-07-11T12:34:56Z"
+          }
+        }
+      ],
+      "notes": "Represents an Orb (Sidetree) transaction.",
+      "subClassOf": {
+        "type": "owl:Class",
+        "url": "https://www.w3.org/TR/activitystreams-vocabulary/#dfn-object",
+        "name": "as:Object"
+      },
+      "name": "Transaction",
+      "url": "https://trustbloc.com/orb/vocabulary.html#type-transaction"
+    },
+    {
+      "id": "https://trustbloc.com/orb/ns#cid",
+      "type": [
+        "rdf:Property",
+        "owl:FunctionalProperty"
+      ],
+      "notes": "Specifies the cid associated with a Transaction, which is a unique identifier of the transaction within the Repository, usually generated as a cryptographic cid function of some (or all) of the transaction’s data or metadata. For example, in Git it would be the SHA1 cid of the transaction; in Darcs it would be the SHA1 cid of the patch info.",
+      "domain": {
+        "type": "owl:Class",
+        "unionOf": {
+          "type": "owl:Class",
+          "url": "https://trustbloc.com/orb/vocabulary.html#type-transaction",
+          "name": "Transaction"
+        }
+      },
+      "isDefinedBy": "https://trustbloc.com/orb/vocabulary.html#prop-cid",
+      "range": {
+        "type": "owl:Class",
+        "unionOf": "xsd:string"
+      },
+      "name": "cid",
+      "url": "https://trustbloc.com/orb/vocabulary.html#prop-cid"
+    }
+  ]
+}

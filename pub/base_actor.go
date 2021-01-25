@@ -175,21 +175,32 @@ func (b *baseActor) PostInbox(c context.Context, w http.ResponseWriter, r *http.
 // Specifying the "scheme" allows for retrieving ActivityStreams content with
 // identifiers such as HTTP, HTTPS, or other protocol schemes.
 func (b *baseActor) PostInboxScheme(c context.Context, w http.ResponseWriter, r *http.Request, scheme string) (bool, error) {
+	fmt.Printf("baseActor.PostInboxScheme - Request %s (%s) from: %s\n", r.URL, r.Method, r.RemoteAddr)
+
 	// Do nothing if it is not an ActivityPub POST request.
 	if !isActivityPubPost(r) {
+		fmt.Printf("baseActor.PostInboxScheme - Not ActivityPubPost!!!\n")
+
 		return false, nil
 	}
+
 	// If the Federated Protocol is not enabled, then this endpoint is not
 	// enabled.
 	if !b.enableFederatedProtocol {
+		fmt.Printf("baseActor.PostInboxScheme - FederatedProtocol not enabled!!!\n")
+
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return true, nil
 	}
+
 	// Check the peer request is authentic.
 	c, authenticated, err := b.delegate.AuthenticatePostInbox(c, w, r)
 	if err != nil {
+		fmt.Printf("baseActor.PostInboxScheme - Error: %s\n", err)
 		return true, err
 	} else if !authenticated {
+		fmt.Printf("baseActor.PostInboxScheme - Not authenticated!!!\n")
+
 		return true, nil
 	}
 	// Begin processing the request, but have not yet applied
@@ -199,10 +210,14 @@ func (b *baseActor) PostInboxScheme(c context.Context, w http.ResponseWriter, r 
 	if err != nil {
 		return true, err
 	}
+
+	fmt.Printf("baseActor.PostInboxScheme - Request from %s: %s\n", r.RemoteAddr, raw)
+
 	var m map[string]interface{}
 	if err = json.Unmarshal(raw, &m); err != nil {
 		return true, err
 	}
+
 	asValue, err := streams.ToType(c, m)
 	if err != nil && !streams.IsUnmatchedErr(err) {
 		return true, err
@@ -235,6 +250,7 @@ func (b *baseActor) PostInboxScheme(c context.Context, w http.ResponseWriter, r 
 	// that particular Activity type. It is up to the delegate to resolve
 	// the given map.
 	inboxId := requestId(r, scheme)
+	fmt.Printf("baseActor.PostInboxScheme - PostInbox to %s\n", inboxId)
 	err = b.delegate.PostInbox(c, inboxId, activity)
 	if err != nil {
 		// Special case: We know it is a bad request if the object or
@@ -437,11 +453,16 @@ func (b *baseActor) GetOutbox(c context.Context, w http.ResponseWriter, r *http.
 //
 // Note: 'm' is nilable.
 func (b *baseActor) deliver(c context.Context, outbox *url.URL, asValue vocab.Type, m map[string]interface{}) (activity Activity, err error) {
+	fmt.Printf("baseActor.deliver - outbox: %s\n", outbox)
+
 	// If the value is not an Activity or type extending from Activity, then
 	// we need to wrap it in a Create Activity.
 	if !streams.IsOrExtendsActivityStreamsActivity(asValue) {
+		fmt.Printf("baseActor.deliver - IsOrExtendsActivityStreamsActivity=false\n")
+
 		asValue, err = b.delegate.WrapInCreate(c, asValue, outbox)
 		if err != nil {
+			fmt.Printf("baseActor.deliver - IsOrExtendsActivityStreamsActivity=false. Error: %s\n", err)
 			return
 		}
 	}
@@ -453,10 +474,12 @@ func (b *baseActor) deliver(c context.Context, outbox *url.URL, asValue vocab.Ty
 	activity, ok = asValue.(Activity)
 	if !ok {
 		err = fmt.Errorf("activity streams value is not an Activity: %T", asValue)
+		fmt.Printf("baseActor.deliver - Error: %s\n", err)
 		return
 	}
 	// Delegate generating new IDs for the activity and all new objects.
 	if err = b.delegate.AddNewIDs(c, activity); err != nil {
+		fmt.Printf("baseActor.deliver - AddNewIDs eror: %s\n", err)
 		return
 	}
 	// Post the activity to the actor's outbox and trigger side effects for
@@ -467,11 +490,13 @@ func (b *baseActor) deliver(c context.Context, outbox *url.URL, asValue vocab.Ty
 	if m == nil {
 		m, err = asValue.Serialize()
 		if err != nil {
+			fmt.Printf("baseActor.deliver - Serialize eror: %s\n", err)
 			return
 		}
 	}
 	deliverable, err := b.delegate.PostOutbox(c, activity, outbox, m)
 	if err != nil {
+		fmt.Printf("baseActor.deliver - PostOutbox eror: %s\n", err)
 		return
 	}
 	// Request has been processed and all side effects internal to this
@@ -480,11 +505,14 @@ func (b *baseActor) deliver(c context.Context, outbox *url.URL, asValue vocab.Ty
 	//
 	// If we are federating and the type is a deliverable one, then deliver
 	// the activity to federating peers.
+	fmt.Printf("baseActor.deliver - enableFederatedProtocol=%t && deliverable=%t\n", b.enableFederatedProtocol, deliverable)
 	if b.enableFederatedProtocol && deliverable {
 		if err = b.delegate.Deliver(c, outbox, activity); err != nil {
+			fmt.Printf("baseActor.deliver - delegate.Deliver eror: %s\n", err)
 			return
 		}
 	}
+	fmt.Printf("baseActor.deliver - Success???\n")
 	return
 }
 

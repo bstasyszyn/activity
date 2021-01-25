@@ -12,6 +12,7 @@ import (
 	"github.com/go-fed/activity/streams/vocab"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -166,6 +167,7 @@ func ToId(i IdProperty) (*url.URL, error) {
 	} else if i.IsIRI() {
 		return i.GetIRI(), nil
 	}
+	debug.PrintStack()
 	return nil, fmt.Errorf("cannot determine id of activitystreams property")
 }
 
@@ -335,6 +337,8 @@ func filterURLs(u []*url.URL, fn func(s string) bool) []*url.URL {
 	i := 0
 	for i < len(u) {
 		if fn(u[i].String()) {
+			fmt.Printf("filterURLs - Adding filtered URL: %s\n", u[i].Path)
+
 			u = append(u[:i], u[i+1:]...)
 		} else {
 			i++

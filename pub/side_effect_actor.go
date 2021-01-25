@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-fed/activity/streams"
-	"github.com/go-fed/activity/streams/vocab"
 	"net/http"
 	"net/url"
+
+	"github.com/go-fed/activity/streams"
+	"github.com/go-fed/activity/streams/vocab"
 )
 
 // sideEffectActor must satisfy the DelegateActor interface.
@@ -105,6 +106,8 @@ func (a *sideEffectActor) AuthorizePostInbox(c context.Context, w http.ResponseW
 // request, adding the activity to the actor's inbox, and triggering side
 // effects based on the activity's type.
 func (a *sideEffectActor) PostInbox(c context.Context, inboxIRI *url.URL, activity Activity) error {
+	fmt.Printf("sideEffectActor.PostInbox called - Activity type: %s\n", activity.GetTypeName())
+
 	isNew, err := a.addToInboxIfNew(c, inboxIRI, activity)
 	if err != nil {
 		return err
@@ -142,6 +145,8 @@ func (a *sideEffectActor) PostInbox(c context.Context, inboxIRI *url.URL, activi
 //
 // InboxForwarding sets the federated data in the database.
 func (a *sideEffectActor) InboxForwarding(c context.Context, inboxIRI *url.URL, activity Activity) error {
+	fmt.Printf("sideEffectActor.InboxForwarding - inboxIRI [%s], activity [%s]\n", inboxIRI, activity.GetTypeName())
+
 	// 1. Must be first time we have seen this Activity.
 	//
 	// Obtain the id of the activity
@@ -160,8 +165,14 @@ func (a *sideEffectActor) InboxForwarding(c context.Context, inboxIRI *url.URL, 
 		return err
 	} else if exists {
 		a.db.Unlock(c, id.Get())
+
+		fmt.Printf("sideEffectActor.InboxForwarding - Already exists in DB [%s]. Nothing to do.\n", id.Get())
+
 		return nil
 	}
+
+	fmt.Printf("sideEffectActor.InboxForwarding - Creating activity and forwarding [%s]\n", id.Get())
+
 	// Attempt to create the activity entry.
 	err = a.db.Create(c, activity)
 	if err != nil {
@@ -181,6 +192,8 @@ func (a *sideEffectActor) InboxForwarding(c context.Context, inboxIRI *url.URL, 
 			if err != nil {
 				return err
 			}
+			fmt.Printf("sideEffectActor.InboxForwarding - Appending from GetActivityStreamsTo [%s]\n", val)
+
 			r = append(r, val)
 		}
 	}
@@ -191,6 +204,8 @@ func (a *sideEffectActor) InboxForwarding(c context.Context, inboxIRI *url.URL, 
 			if err != nil {
 				return err
 			}
+			fmt.Printf("sideEffectActor.InboxForwarding - Appending from GetActivityStreamsCc [%s]\n", val)
+
 			r = append(r, val)
 		}
 	}
@@ -201,6 +216,8 @@ func (a *sideEffectActor) InboxForwarding(c context.Context, inboxIRI *url.URL, 
 			if err != nil {
 				return err
 			}
+			fmt.Printf("sideEffectActor.InboxForwarding - Appending from GetActivityStreamsAudience [%s]\n", val)
+
 			r = append(r, val)
 		}
 	}
@@ -221,9 +238,13 @@ func (a *sideEffectActor) InboxForwarding(c context.Context, inboxIRI *url.URL, 
 			return err
 		} else if !owns {
 			a.db.Unlock(c, iri)
+			fmt.Printf("sideEffectActor.InboxForwarding - This server does NOT own [%s]. Skipping.\n", iri)
+
 			continue
 		}
 		a.db.Unlock(c, iri)
+		fmt.Printf("sideEffectActor.InboxForwarding - Adding to myIRIs [%s]\n", iri)
+
 		// Unlock by this point and in every branch above.
 		myIRIs = append(myIRIs, iri)
 	}
@@ -245,30 +266,39 @@ func (a *sideEffectActor) InboxForwarding(c context.Context, inboxIRI *url.URL, 
 			return err
 		}
 		if streams.IsOrExtendsActivityStreamsOrderedCollection(t) {
+			fmt.Printf("sideEffectActor.InboxForwarding - IsOrExtendsActivityStreamsOrderedCollection=true [%s]\n", iri)
 			if im, ok := t.(orderedItemser); ok {
 				oCol[iri.String()] = im
+				fmt.Printf("sideEffectActor.InboxForwarding - Appending to colIRIs [%s]\n", iri)
 				colIRIs = append(colIRIs, iri)
 				defer a.db.Unlock(c, iri)
 			} else {
 				a.db.Unlock(c, iri)
 			}
 		} else if streams.IsOrExtendsActivityStreamsCollection(t) {
+			fmt.Printf("sideEffectActor.InboxForwarding - IsOrExtendsActivityStreamsCollection=true [%s]\n", iri)
 			if im, ok := t.(itemser); ok {
 				col[iri.String()] = im
+				fmt.Printf("sideEffectActor.InboxForwarding - Appending to colIRIs [%s]\n", iri)
 				colIRIs = append(colIRIs, iri)
 				defer a.db.Unlock(c, iri)
 			} else {
 				a.db.Unlock(c, iri)
 			}
 		} else {
+			fmt.Printf("sideEffectActor.InboxForwarding - Not appending to colIRIs since item is NOT a collection [%s]\n", iri)
 			a.db.Unlock(c, iri)
 		}
 	}
 	// If we own none of the Collection IRIs in 'to', 'cc', or 'audience'
 	// then no need to do inbox forwarding. We have nothing to forward to.
 	if len(colIRIs) == 0 {
+		fmt.Printf("sideEffectActor.InboxForwarding - colIRIs is empty\n")
 		return nil
 	}
+
+	fmt.Printf("sideEffectActor.InboxForwarding - Forwarding to IRIs [%s]: %s\n", id.Get(), colIRIs)
+
 	// 3. The values of 'inReplyTo', 'object', 'target', or 'tag' are owned
 	//    by this server. This is only a boolean trigger: As soon as we get
 	//    a hit that we own something, then we should do inbox forwarding.
@@ -313,6 +343,8 @@ func (a *sideEffectActor) InboxForwarding(c context.Context, inboxIRI *url.URL, 
 			}
 		}
 	}
+	fmt.Printf("sideEffectActor.InboxForwarding - Delivering to recipients [%s]: %s\n", id.Get(), recipients)
+
 	return a.deliverToRecipients(c, inboxIRI, activity, recipients)
 }
 
@@ -399,8 +431,10 @@ func (a *sideEffectActor) AddNewIDs(c context.Context, activity Activity) error 
 //
 // Must be called if at least the federated protocol is supported.
 func (a *sideEffectActor) Deliver(c context.Context, outboxIRI *url.URL, activity Activity) error {
+	fmt.Printf("sideEffectActor.Deliver - outboxIRI: %s\n", outboxIRI)
 	recipients, err := a.prepare(c, outboxIRI, activity)
 	if err != nil {
+		fmt.Printf("sideEffectActor.Deliver - Error: %s\n", err)
 		return err
 	}
 	return a.deliverToRecipients(c, outboxIRI, activity, recipients)
@@ -434,10 +468,15 @@ func (a *sideEffectActor) deliverToRecipients(c context.Context, boxIRI *url.URL
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("sideEffectActor.deliverToRecipients - boxIRI: %s, recipients: %s: %s\n", boxIRI, recipients, b)
+
 	tp, err := a.common.NewTransport(c, boxIRI, goFedUserAgent())
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("sideEffectActor.deliverToRecipients - calling BatchDeliver...\n")
 	return tp.BatchDeliver(c, b, recipients)
 }
 
@@ -616,6 +655,8 @@ func (a *sideEffectActor) hasInboxForwardingValues(c context.Context, inboxIRI *
 //
 // Only call if both the social and federated protocol are supported.
 func (a *sideEffectActor) prepare(c context.Context, outboxIRI *url.URL, activity Activity) (r []*url.URL, err error) {
+	fmt.Printf("sideEffectActor.prepare - Activity: %s\n", activity.GetTypeName())
+
 	// Get inboxes of recipients
 	if to := activity.GetActivityStreamsTo(); to != nil {
 		for iter := to.Begin(); iter != to.End(); iter = iter.Next() {
@@ -624,6 +665,8 @@ func (a *sideEffectActor) prepare(c context.Context, outboxIRI *url.URL, activit
 			if err != nil {
 				return
 			}
+
+			fmt.Printf("sideEffectActor.prepare - Adding from GetActivityStreamsTo: %s\n", val.Path)
 			r = append(r, val)
 		}
 	}
@@ -634,6 +677,8 @@ func (a *sideEffectActor) prepare(c context.Context, outboxIRI *url.URL, activit
 			if err != nil {
 				return
 			}
+
+			fmt.Printf("sideEffectActor.prepare - Adding from GetActivityStreamsBto: %s\n", val.Path)
 			r = append(r, val)
 		}
 	}
@@ -644,6 +689,8 @@ func (a *sideEffectActor) prepare(c context.Context, outboxIRI *url.URL, activit
 			if err != nil {
 				return
 			}
+
+			fmt.Printf("sideEffectActor.prepare - Adding from GetActivityStreamsCc: %s\n", val.Path)
 			r = append(r, val)
 		}
 	}
@@ -654,6 +701,8 @@ func (a *sideEffectActor) prepare(c context.Context, outboxIRI *url.URL, activit
 			if err != nil {
 				return
 			}
+
+			fmt.Printf("sideEffectActor.prepare - Adding from GetActivityStreamsBcc: %s\n", val.Path)
 			r = append(r, val)
 		}
 	}
@@ -664,6 +713,8 @@ func (a *sideEffectActor) prepare(c context.Context, outboxIRI *url.URL, activit
 			if err != nil {
 				return
 			}
+
+			fmt.Printf("sideEffectActor.prepare - Adding from GetActivityStreamsAudience: %s\n", val.Path)
 			r = append(r, val)
 		}
 	}

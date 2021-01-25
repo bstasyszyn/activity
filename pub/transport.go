@@ -137,6 +137,8 @@ func (h HttpSigTransport) Dereference(c context.Context, iri *url.URL) ([]byte, 
 
 // Deliver sends a POST request with an HTTP Signature.
 func (h HttpSigTransport) Deliver(c context.Context, b []byte, to *url.URL) error {
+	fmt.Printf("HttpSigTransport.Deliver - To: %s, Content: %s\n", to, b)
+
 	req, err := http.NewRequest("POST", to.String(), bytes.NewReader(b))
 	if err != nil {
 		return err
@@ -166,6 +168,8 @@ func (h HttpSigTransport) Deliver(c context.Context, b []byte, to *url.URL) erro
 // BatchDeliver sends concurrent POST requests. Returns an error if any of the
 // requests had an error.
 func (h HttpSigTransport) BatchDeliver(c context.Context, b []byte, recipients []*url.URL) error {
+	fmt.Printf("HttpSigTransport.BatchDeliver - Recipients: %s\n", recipients)
+
 	var wg sync.WaitGroup
 	errCh := make(chan error, len(recipients))
 	for _, recipient := range recipients {

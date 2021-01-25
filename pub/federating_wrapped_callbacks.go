@@ -363,6 +363,8 @@ func (w FederatingWrappedCallbacks) deleteFn(c context.Context, a vocab.Activity
 
 // follow implements the federating Follow activity side effects.
 func (w FederatingWrappedCallbacks) follow(c context.Context, a vocab.ActivityStreamsFollow) error {
+	fmt.Println("FederatingWrappedCallbacks.follow called")
+
 	op := a.GetActivityStreamsObject()
 	if op == nil || op.Len() == 0 {
 		return ErrObjectRequired
