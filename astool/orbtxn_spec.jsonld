@@ -75,42 +75,6 @@
       "url": "https://trustbloc.com/orb/vocabulary.html#act-commit"
     },
     {
-      "id": "https://trustbloc.com/orb/ns#Repository",
-      "type": "owl:Class",
-      "example": [
-        {
-          "type": "http://schema.org/CreativeWork",
-          "mainEntity": {
-            "@context": [
-              "https://www.w3.org/ns/activitystreams",
-              "https://w3id.org/security/v1",
-              "https://trustbloc.com/orb/ns"
-            ],
-            "id": "https://org1.com/orb/public",
-            "type": "Repository",
-            "publicKey": {
-              "id": "https://org1.com/orb/public#main-key",
-              "owner": "https://org1.com/orb/public",
-              "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhki....."
-            },
-            "inbox": "https://org1.com/orb/public/inbox",
-            "outbox": "https://org1.com/orb/public/outbox",
-            "followers": "https://org1.com/orb/public/followers",
-            "name": "Orb public repository",
-            "summary": "<p>Orb public repository</p>"
-          }
-        }
-      ],
-      "notes": "Represents an Orb transaction repository.",
-      "subClassOf": {
-        "type": "owl:Class",
-        "url": "https://www.w3.org/TR/activitystreams-vocabulary/#dfn-object",
-        "name": "as:Object"
-      },
-      "name": "Repository",
-      "url": "https://trustbloc.com/orb/vocabulary.html#type-repository"
-    },
-    {
       "id": "https://trustbloc.com/orb/ns#Transaction",
       "type": "owl:Class",
       "example": [
@@ -137,29 +101,6 @@
       },
       "name": "Transaction",
       "url": "https://trustbloc.com/orb/vocabulary.html#type-transaction"
-    },
-    {
-      "id": "https://trustbloc.com/orb/ns#cid",
-      "type": [
-        "rdf:Property",
-        "owl:FunctionalProperty"
-      ],
-      "notes": "Specifies the cid associated with a Transaction, which is a unique identifier of the transaction within the Repository, usually generated as a cryptographic cid function of some (or all) of the transaction’s data or metadata. For example, in Git it would be the SHA1 cid of the transaction; in Darcs it would be the SHA1 cid of the patch info.",
-      "domain": {
-        "type": "owl:Class",
-        "unionOf": {
-          "type": "owl:Class",
-          "url": "https://trustbloc.com/orb/vocabulary.html#type-transaction",
-          "name": "Transaction"
-        }
-      },
-      "isDefinedBy": "https://trustbloc.com/orb/vocabulary.html#prop-cid",
-      "range": {
-        "type": "owl:Class",
-        "unionOf": "xsd:string"
-      },
-      "name": "cid",
-      "url": "https://trustbloc.com/orb/vocabulary.html#prop-cid"
     }
   ]
 }
